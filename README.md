@@ -42,26 +42,19 @@ where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and
  ```
 - оптимизируйте запрос: внесите корректировки по использованию операторов, при необходимости добавьте индексы.
 
-Заменим запятую в FROM на ключевое слово JOIN для явного указания типа соединения,
-Добавим индексы на соединяемые столбцы, 
-Упростим оконную функцию сделав обычную агрегацию с GROUP BY вместо оконной функции SUM
+
 
 ![image](2.png)
 ```
--> Limit: 200 row(s)  (actual time=24.3..24.4 rows=200 loops=1)
-    -> Sort with duplicate removal: `CONCAT(c.last_name, ' ', c.first_name)`, `SUM(p.amount)`  (actual time=24.3..24.4 rows=200 loops=1)
-        -> Table scan on <temporary>  (actual time=23.1..23.4 rows=634 loops=1)
-            -> Aggregate using temporary table  (actual time=23.1..23.1 rows=634 loops=1)
-                -> Nested loop inner join  (cost=35336 rows=16010) (actual time=0.15..20 rows=642 loops=1)
-                    -> Nested loop inner join  (cost=29733 rows=16010) (actual time=0.143..18.3 rows=642 loops=1)
-                        -> Nested loop inner join  (cost=24129 rows=16010) (actual time=0.137..16.8 rows=642 loops=1)
-                            -> Nested loop inner join  (cost=18526 rows=16010) (actual time=0.127..15.4 rows=642 loops=1)
-                                -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=1606 rows=15813) (actual time=0.104..11.6 rows=634 loops=1)
-                                    -> Table scan on p  (cost=1606 rows=15813) (actual time=0.0781..8.86 rows=16044 loops=1)
-                                -> Covering index lookup on r using rental_date (rental_date=p.payment_date)  (cost=0.969 rows=1.01) (actual time=0.00405..0.00576 rows=1.01 loops=634)
-                            -> Single-row index lookup on c using PRIMARY (customer_id=r.customer_id)  (cost=0.25 rows=1) (actual time=0.00184..0.00187 rows=1 loops=642)
-                        -> Single-row index lookup on i using PRIMARY (inventory_id=r.inventory_id)  (cost=0.25 rows=1) (actual time=0.00211..0.00215 rows=1 loops=642)
-                    -> Single-row index lookup on f using PRIMARY (film_id=i.film_id)  (cost=0.25 rows=1) (actual time=0.00239..0.00244 rows=1 loops=642)
+-> Limit: 200 row(s)  (actual time=21.9..22 rows=200 loops=1)
+    -> Table scan on <temporary>  (actual time=21.9..21.9 rows=200 loops=1)
+        -> Aggregate using temporary table  (actual time=21.9..21.9 rows=391 loops=1)
+            -> Nested loop inner join  (cost=4108 rows=1779) (actual time=0.151..19.7 rows=642 loops=1)
+                -> Nested loop inner join  (cost=3485 rows=1779) (actual time=0.136..18.1 rows=642 loops=1)
+                    -> Filter: ((p.payment_date >= TIMESTAMP'2005-07-30 00:00:00') and (p.payment_date < <cache>(('2005-07-30' + interval 1 day))))  (cost=1606 rows=1757) (actual time=0.108..14.3 rows=634 loops=1)
+                        -> Table scan on p  (cost=1606 rows=15813) (actual time=0.0819..10.4 rows=16044 loops=1)
+                    -> Covering index lookup on r using rental_date (rental_date=p.payment_date)  (cost=0.969 rows=1.01) (actual time=0.00397..0.00565 rows=1.01 loops=634)
+                -> Single-row index lookup on c using PRIMARY (customer_id=r.customer_id)  (cost=0.25 rows=1) (actual time=0.00208..0.00213 rows=1 loops=642)
 
 
 ```
